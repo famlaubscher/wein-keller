@@ -19,8 +19,8 @@
     *{box-sizing:border-box;-webkit-font-smoothing:antialiased;font-family:-apple-system,BlinkMacSystemFont,Inter,Roboto,"Helvetica Neue",Arial,sans-serif}
     html,body{height:100%}
     body{margin:0;background:var(--bg);color:var(--text-primary)}
-    #app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
-    header.appHeader{$1 padding: calc(1rem + env(safe-area-inset-top)) 1rem .75rem;}
+    #app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);padding-bottom:calc(64px + env(safe-area-inset-bottom));padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+    header.appHeader{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:1rem 1rem .75rem;}
     .header-left{display:flex;align-items:baseline;gap:.5rem}
     h1.appTitle{font-size:1.1rem;font-weight:600;margin:0;cursor:pointer}
     .subtle{font-size:.75rem;color:var(--text-dim)}
