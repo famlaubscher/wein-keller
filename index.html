@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Wein-Keller</title>
+  <style>
+    :root{
+      --bg:#0f0f10;--panel:#1a1a1f;--text-primary:#fff;--text-dim:#9b9ba6;--border:#2a2a33;--radius-xl:1.25rem;--radius-lg:1rem;--radius-md:.75rem;
+      --rot-grad:radial-gradient(circle at 20% 20%,#742031 0%,#2a0a12 70%);
+      --weiss-grad:radial-gradient(circle at 20% 20%,#e2d48a 0%,#473f1e 70%);
+      --rose-grad:radial-gradient(circle at 20% 20%,#ff9db6 0%,#4a1f28 70%);
+      --orange-grad:radial-gradient(circle at 20% 20%,#d99242 0%,#4a2a14 70%);
+      --schaum-grad:radial-gradient(circle at 20% 20%,#f6e9a8 0%,#4a4320 70%);
+      --stats-grad:radial-gradient(circle at 20% 20%, #3a4a6a 0%, #141a22 70%);
+    }
+    *{box-sizing:border-box;-webkit-font-smoothing:antialiased;font-family:-apple-system,BlinkMacSystemFont,Inter,Roboto,"Helvetica Neue",Arial,sans-serif}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text-primary)}
+    #app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+    header.appHeader{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:1rem 1rem .75rem}
+    .header-left{display:flex;align-items:baseline;gap:.5rem}
+    h1.appTitle{font-size:1.1rem;font-weight:600;margin:0;cursor:pointer}
+    .subtle{font-size:.75rem;color:var(--text-dim)}
+    .headerButtons{display:flex;gap:.5rem}
+    .btn{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text-primary);font-size:1rem;line-height:1;padding:.7rem .9rem;display:inline-flex;align-items:center;gap:.5rem}
+    main.view{flex:1;padding:1rem;display:none}
+    main.view.active{display:block}
+
+    /* Fehlerbanner */
+    #errorBanner{display:none;position:sticky;top:0;z-index:20;background:#3a2222;border-bottom:1px solid #7a2a2a;color:#ffd6d6;padding:.5rem .75rem;font-size:.85rem}
+
+    /* Landing */
+    #categoryGrid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem}
+    .catCard{position:relative;border-radius:var(--radius-xl);padding:1rem;min-height:140px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;box-shadow:0 20px 40px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.08);text-align:left}
+    .catTop{display:flex;justify-content:space-between;align-items:flex-start;font-size:1.25rem;font-weight:600}
+    .catEmoji{font-size:1.5rem;line-height:1.2}
+    .catName{max-width:70%;font-size:1rem;font-weight:600;line-height:1.3}
+    .catBottom{font-size:.8rem;color:rgba(255,255,255,.85);display:flex;flex-direction:column}
+    .catCount{font-size:1rem;font-weight:500;color:#fff}
+
+    /* List */
+    #listHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+    #listHeaderLeft{display:flex;align-items:center;gap:.75rem}
+    #backBtn{background:var(--panel);border-radius:var(--radius-md);border:1px solid var(--border);padding:.7rem .9rem;font-size:1rem;color:var(--text-primary)}
+    #listTools{display:flex;align-items:center;gap:.5rem}
+    .searchInput{width:10.5rem;background:#2a2a33;border:1px solid var(--border);border-radius:var(--radius-md);padding:.6rem .7rem;color:var(--text-primary);font-size:1rem}
+    .selectSmall{background:#2a2a33;border:1px solid var(--border);border-radius:var(--radius-md);padding:.6rem .7rem;color:var(--text-primary);font-size:1rem}
+    #wineList{display:flex;flex-direction:column;gap:.75rem}
+    .wineRow{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem;display:flex;justify-content:space-between;align-items:center}
+    .wineMain{display:flex;flex-direction:column;min-width:0}
+    .wineName{font-size:1rem;font-weight:600;line-height:1.3;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+    .wineMeta{font-size:.8rem;line-height:1.4;color:var(--text-dim)}
+    .wineRight{text-align:right;display:flex;flex-direction:column;gap:.3rem;flex-shrink:0}
+    .qtyBubble{background:#2f2f3d;border:1px solid #4a4a5f;border-radius:var(--radius-md);padding:.35rem .6rem;font-size:.8rem;font-weight:600;min-width:3.2rem;text-align:center}
+    .rating{font-size:.8rem;color:#ffd966;line-height:1}
+    .priceTag{font-size:.8rem;line-height:1;text-align:right}
+
+    /* Detail */
+    #view-detail .detailHeader{display:flex;align-items:center;gap:.75rem;margin-bottom:1rem}
+    #detailBackBtn{background:var(--panel);border-radius:var(--radius-md);border:1px solid var(--border);padding:.7rem .9rem;color:var(--text-primary)}
+    .detailCard{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-xl);padding:1rem;display:flex;flex-direction:column;gap:.75rem}
+    .detailPhoto{width:100%;max-height:260px;object-fit:contain;border-radius:var(--radius-md);border:1px solid var(--border);background:#000}
+    .detailRow{display:flex;justify-content:space-between;gap:1rem;font-size:1rem}
+    .detailLabel{color:var(--text-dim);min-width:7rem}
+    .pillRow{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.25rem}
+    .pillBtn{background:#2a2a33;border:1px solid var(--border);border-radius:var(--radius-md);padding:.7rem .9rem;font-size:1rem;color:#fff}
+    .pillBtn.danger{border-color:#7a2a2a;background:#3a2222}
+
+    /* Modal */
+    dialog#wine-form-modal{background:var(--panel);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-xl);padding:1rem 1rem 5rem;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;position:fixed;bottom:0;left:50%;transform:translateX(-50%)}
+    dialog::backdrop{background:rgba(0,0,0,.6)}
+    .formHeader{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem}
+    .formTitle{font-size:1rem;font-weight:600}
+    .closeBtn{background:transparent;border:0;color:var(--text-dim);font-size:1rem;padding:.6rem .8rem}
+    form#wineForm{display:flex;flex-direction:column;gap:1rem}
+    .field{display:flex;flex-direction:column;gap:.4rem}
+    .field label{font-size:.85rem;color:var(--text-dim);font-weight:600}
+    .textInput,.numberInput{width:100%;background:#2a2a33;border:1px solid var(--border);border-radius:var(--radius-md);padding:1rem .85rem;color:var(--text-primary);font-size:1rem}
+    .styleRow{display:flex;flex-wrap:wrap;gap:.5rem}
+    .styleChip{background:#2a2a33;border:1px solid var(--border);border-radius:var(--radius-md);padding:.7rem .85rem;font-size:.95rem;color:var(--text-primary)}
+    .styleChip.active{outline:2px solid #fff;outline-offset:-2px}
+    .photoBlock{background:#2a2a33;border:1px solid var(--border);border-radius:var(--radius-md);padding:.8rem;display:flex;flex-direction:column;gap:.5rem;font-size:.9rem;color:var(--text-dim)}
+    #photoPreview{width:100%;border-radius:var(--radius-md);border:1px solid var(--border);background:#000;max-height:200px;object-fit:contain;display:none}
+    .actionRow{display:flex;gap:.75rem;margin:2rem 0}
+    .saveBtn{flex:1;background:#4a3af5;border:0;border-radius:var(--radius-md);color:#fff;font-size:1rem;font-weight:700;padding:1rem 1.1rem;text-align:center}
+    .saveBtn:active{background:#392cd8}
+
+    /* Tabbar unten */
+    .tabbar{position:fixed;left:0;right:0;bottom:0;background:rgba(26,26,31,.96);backdrop-filter:saturate(140%) blur(8px);border-top:1px solid var(--border);display:flex;justify-content:space-around;gap:.5rem;padding:.5rem .9rem;z-index:20;padding-bottom:calc(.5rem + env(safe-area-inset-bottom))}
+    .tabBtn{flex:1;display:flex;flex-direction:column;align-items:center;gap:.2rem;background:transparent;border:0;color:var(--text-primary);font-size:1.25rem;padding:.25rem .5rem}
+    .tabBtn span{font-size:.75rem;color:var(--text-dim)}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="errorBanner"></div>
+    <header class="appHeader">
+      <div class="header-left">
+        <h1 class="appTitle" id="homeTitle">Mein Keller</h1>
+        <div class="subtle" id="totalBottleCount">0 Flaschen</div>
+        <div class="subtle" id="totalValue">CHF 0.00</div>
+      </div>
+      <div class="headerButtons">
+        <button class="btn" id="openAddWineBtn">＋ Neuer Wein</button>
+      </div>
+    </header>
+
+    <!-- LANDING VIEW -->
+    <main id="view-landing" class="view active">
+      <div id="categoryGrid"></div>
+    </main>
+
+    <!-- SETTINGS VIEW -->
+    <main id="view-settings" class="view">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;">
+        <div>
+          <div style="font-size:1.1rem;font-weight:700;">Einstellungen</div>
+          <div class="subtle">Backup &amp; Datenimport</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.9rem;">
+        <button class="btn" id="exportBtn">Export JSON</button>
+        <label class="btn" for="importInput" style="display:inline-flex;align-items:center;gap:.5rem;cursor:pointer;">Import JSON<input id="importInput" type="file" accept="application/json" style="display:none" /></label>
+      </div>
+    </main>
+
+    <!-- LIST VIEW -->
+    <main id="view-list" class="view">
+      <div id="listHeader">
+        <div id="listHeaderLeft">
+          <button id="backBtn" class="btn" aria-label="Zurück">◀</button>
+          <div>
+            <div id="listTitle">Kategorie</div>
+            <div class="subtle" id="listSubtitle">0 Flaschen</div>
+          </div>
+        </div>
+        <div id="listTools">
+          <input id="searchInput" class="searchInput" placeholder="Suchen…" />
+          <select id="sortSelect" class="selectSmall">
+            <option value="jahrgang_desc">Jahrgang ↓</option>
+            <option value="jahrgang_asc">Jahrgang ↑</option>
+            <option value="name_asc">Name A–Z</option>
+            <option value="bestand_desc">Bestand ↓</option>
+            <option value="preis_desc">Preis ↓</option>
+          </select>
+        </div>
+      </div>
+      <div id="wineList"></div>
+    </main>
+
+    <!-- DETAIL VIEW -->
+    <main id="view-detail" class="view">
+      <div class="detailHeader">
+        <button id="detailBackBtn" class="btn" aria-label="Zurück">◀</button>
+        <div id="detailTitle">Wein</div>
+      </div>
+      <div class="detailCard">
+        <img id="detailPhoto" class="detailPhoto" alt="Etikett" />
+        <div class="detailRow"><div class="detailLabel">Name</div><div id="detailName"></div></div>
+        <div class="detailRow"><div class="detailLabel">Weingut</div><div id="detailWinery"></div></div>
+        <div class="detailRow"><div class="detailLabel">Region</div><div id="detailRegion"></div></div>
+        <div class="detailRow"><div class="detailLabel">Jahrgang</div><div id="detailVintage"></div></div>
+        <div class="detailRow"><div class="detailLabel">Stil</div><div id="detailStyle"></div></div>
+        <div class="detailRow"><div class="detailLabel">Alkohol</div><div id="detailAlcohol"></div></div>
+        <div class="detailRow"><div class="detailLabel">Preis</div><div id="detailPrice"></div></div>
+        <div class="detailRow"><div class="detailLabel">Bestand</div><div id="detailQty"></div></div>
+        <div class="pillRow">
+          <button id="drinkOneBtn" class="pillBtn">1 Flasche getrunken 🍷</button>
+          <button id="editBtn" class="pillBtn">Bearbeiten</button>
+          <button id="deleteBtn" class="pillBtn danger">Löschen</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- MODAL: NEW / EDIT WINE FORM -->
+    <dialog id="wine-form-modal">
+      <div class="formHeader">
+        <div>
+          <div class="formTitle" id="formTitle">Neuer Wein</div>
+          <div class="subtle">Foto → Auto-Vorfüllung → speichern</div>
+        </div>
+        <button class="closeBtn" id="closeFormBtn">Schliessen</button>
+      </div>
+
+      <form id="wineForm" method="dialog">
+        <div class="field">
+          <label for="winePhotoInput">Flaschenfoto / Etikett</label>
+          <div class="photoBlock">
+            <input id="winePhotoInput" type="file" accept="image/*" capture="environment" />
+            <img id="photoPreview" alt="Foto Vorschau" />
+            <div class="subtle" id="ocrStatus">Noch kein Foto erfasst.</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Typ / Stil</label>
+          <div class="styleRow" id="styleSelector"></div>
+        </div>
+
+        <div class="field">
+          <label for="wineName">Weinname / Cuvée *</label>
+          <input class="textInput" id="wineName" placeholder="z.B. Barolo Cannubi" />
+        </div>
+
+        <div class="field">
+          <label for="wineWinery">Weingut / Produzent *</label>
+          <input class="textInput" id="wineWinery" placeholder="z.B. Luciano Sandrone" />
+        </div>
+
+        <div class="field">
+          <label for="wineRegion">Region / Appellation</label>
+          <input class="textInput" id="wineRegion" placeholder="z.B. Barolo DOCG, Piemonte, Italien" />
+        </div>
+
+        <div class="field">
+          <label for="wineVintage">Jahrgang</label>
+          <input class="numberInput" id="wineVintage" inputmode="numeric" pattern="[0-9]*" placeholder="2016" />
+        </div>
+
+        <div class="field">
+          <label for="wineAlcohol">Alkohol %vol</label>
+          <input class="numberInput" id="wineAlcohol" inputmode="decimal" placeholder="14.5" />
+        </div>
+
+        <div class="field">
+          <label for="wineQuantity">Anzahl Flaschen *</label>
+          <input class="numberInput" id="wineQuantity" inputmode="numeric" pattern="[0-9]*" placeholder="6" />
+        </div>
+
+        <div class="field">
+          <label for="winePrice">Preis pro Flasche (CHF)</label>
+          <input class="numberInput" id="winePrice" inputmode="decimal" placeholder="45.00" />
+        </div>
+
+        <div class="field">
+          <label for="wineNotes">Notiz (optional)</label>
+          <input class="textInput" id="wineNotes" placeholder="Nase: Kirsche, Lakritz, langer Abgang…" />
+        </div>
+
+        <div class="actionRow">
+          <button type="button" class="saveBtn" id="saveWineBtn">Speichern</button>
+        </div>
+
+        <div class="subtle">Hinweis: heuristische Foto-Auslese (Jahrgang/Alkohol) via Dateiname. Echte OCR folgt später.</div>
+      </form>
+    </dialog>
+
+    <footer id="tabbar" class="tabbar">
+      <button id="tabHomeBtn" class="tabBtn" aria-label="Start">🏠<span>Start</span></button>
+      <button id="tabSettingsBtn" class="tabBtn" aria-label="Einstellungen">⚙️<span>Einstellungen</span></button>
+    </footer>
+  </div>
+
+  <script>
+    // -------- Fehleranzeige --------
+    function showError(msg){ try{ var b=document.getElementById('errorBanner'); b.textContent='Fehler: '+msg; b.style.display='block'; }catch(e){} }
+    window.addEventListener('error', function(e){ showError(e.message); });
+
+    // --- Daten & Utilities ---
+    var CATEGORIES=[
+      {code:'rot',label:'Rotwein',emoji:'🍷',bgStyle:'var(--rot-grad)'},
+      {code:'weiss',label:'Weisswein',emoji:'🍾',bgStyle:'var(--weiss-grad)'},
+      {code:'rose',label:'Rosé',emoji:'🌸',bgStyle:'var(--rose-grad)'},
+      {code:'orange',label:'Orange',emoji:'🍊',bgStyle:'var(--orange-grad)'},
+      {code:'schaum',label:'Sekt / Schaumwein',emoji:'🥂',bgStyle:'var(--schaum-grad)'}
+    ];
+    var LS_KEY='weinApp.wines';
+
+    var wines=[]; var currentListStyle=null; var selectedStyleCode=null; var currentPhotoDataUrl=''; var currentEditingId=null; var listSearchQuery=''; var listSortMode='jahrgang_desc'; var currentDetailId=null;
+
+    // --- DOM ---
+    var viewLandingEl=document.getElementById('view-landing');
+    var viewListEl=document.getElementById('view-list');
+    var viewDetailEl=document.getElementById('view-detail');
+    var viewSettingsEl=document.getElementById('view-settings');
+
+    var categoryGridEl=document.getElementById('categoryGrid');
+    var totalBottleCountEl=document.getElementById('totalBottleCount');
+    var totalValueEl=document.getElementById('totalValue');
+
+    var homeTitleEl=document.getElementById('homeTitle');
+    var openAddWineBtn=document.getElementById('openAddWineBtn');
+
+    var listTitleEl=document.getElementById('listTitle');
+    var listSubtitleEl=document.getElementById('listSubtitle');
+    var wineListEl=document.getElementById('wineList');
+    var backBtnEl=document.getElementById('backBtn');
+    var searchInputEl=document.getElementById('searchInput');
+    var sortSelectEl=document.getElementById('sortSelect');
+
+    var tabHomeBtnEl=document.getElementById('tabHomeBtn');
+    var tabSettingsBtnEl=document.getElementById('tabSettingsBtn');
+
+    var wineFormModal=document.getElementById('wine-form-modal');
+    var closeFormBtn=document.getElementById('closeFormBtn');
+    var winePhotoInputEl=document.getElementById('winePhotoInput');
+    var photoPreviewEl=document.getElementById('photoPreview');
+    var ocrStatusEl=document.getElementById('ocrStatus');
+    var styleSelectorEl=document.getElementById('styleSelector');
+    var wineNameEl=document.getElementById('wineName');
+    var wineWineryEl=document.getElementById('wineWinery');
+    var wineRegionEl=document.getElementById('wineRegion');
+    var wineVintageEl=document.getElementById('wineVintage');
+    var wineAlcoholEl=document.getElementById('wineAlcohol');
+    var wineQuantityEl=document.getElementById('wineQuantity');
+    var winePriceEl=document.getElementById('winePrice');
+    var wineNotesEl=document.getElementById('wineNotes');
+    var saveWineBtn=document.getElementById('saveWineBtn');
+
+    var exportBtnEl=document.getElementById('exportBtn');
+    var importInputEl=document.getElementById('importInput');
+
+    // --- Storage ---
+    function loadWines(){
+      try{
+        var raw=localStorage.getItem(LS_KEY);
+        var parsed = raw? JSON.parse(raw) : [];
+        if(!Array.isArray(parsed)) parsed = [];
+        wines = parsed.filter(function(x){return x && typeof x==='object';});
+      }catch(e){
+        wines=[];
+      }
+    }
+    function saveWines(){localStorage.setItem(LS_KEY,JSON.stringify(wines));updateHeaderTotals()}
+
+    // --- Preise ---
+    function parsePrice(v){ try{ if(v==null) return 0; var s=String(v).replace(/\s/g,'').replace(',','.'); var n=parseFloat(s); return isNaN(n)?0:n; }catch(e){return 0;} }
+    function formatCurrency(n){ try{ return new Intl.NumberFormat('de-CH',{style:'currency',currency:'CHF'}).format(n||0); }catch(e){ var val=(Number(n)||0).toFixed(2); return 'CHF '+val; } }
+
+    function totalBottleCount(){return wines.reduce(function(s,w){return s+(Number(w.quantity)||0)},0)}
+    function totalCellarValue(){return wines.reduce(function(s,w){return s+parsePrice(w.price)*(Number(w.quantity)||0)},0)}
+    function updateHeaderTotals(){var t=totalBottleCount(); totalBottleCountEl.textContent=t+' '+(t===1?'Flasche':'Flaschen'); totalValueEl.textContent=formatCurrency(totalCellarValue())}
+    function countByStyle(code){return wines.filter(function(w){return w.style===code}).reduce(function(s,w){return s+(Number(w.quantity)||0)},0)}
+
+    // --- UI Bausteine ---
+    function makeEl(tag, className, text){var el=document.createElement(tag); if(className) el.className=className; if(text!=null) el.textContent=text; return el;}
+
+    function createCategoryCard(cat){
+      var qty=countByStyle(cat.code);
+      var btn=makeEl('button','catCard');
+      btn.style.backgroundImage=cat.bgStyle;
+      btn.style.border='1px solid rgba(255,255,255,.12)';
+      btn.style.color='#fff';
+
+      var top=makeEl('div','catTop');
+      top.appendChild(makeEl('div','catName',cat.label));
+      top.appendChild(makeEl('div','catEmoji',cat.emoji));
+
+      var bottom=makeEl('div','catBottom');
+      bottom.appendChild(makeEl('div','catCount',qty+' '+(qty===1?'Flasche':'Flaschen')));
+      bottom.appendChild(makeEl('div','subtle','Tippen für Liste'));
+
+      btn.appendChild(top); btn.appendChild(bottom);
+      btn.addEventListener('click',function(){openListView(cat.code)});
+      return btn;
+    }
+
+    function createStatsCard(){
+      var t=totalBottleCount();
+      var val=formatCurrency(totalCellarValue());
+      var btn=makeEl('button','catCard');
+      btn.style.backgroundImage='var(--stats-grad)';
+      btn.style.border='1px solid rgba(255,255,255,.12)';
+      btn.style.color='#fff';
+
+      var top=makeEl('div','catTop');
+      top.appendChild(makeEl('div','catName','Einstellungen & Überblick'));
+      top.appendChild(makeEl('div','catEmoji','⚙️'));
+
+      var bottom=makeEl('div','catBottom');
+      bottom.appendChild(makeEl('div','catCount',t+' '+(t===1?'Flasche':'Flaschen')));
+      bottom.appendChild(makeEl('div',null,val+' gesamt'));
+      bottom.appendChild(makeEl('div','subtle','Tippen für Einstellungen'));
+
+      btn.appendChild(top); btn.appendChild(bottom);
+      btn.addEventListener('click',openSettingsView);
+      return btn;
+    }
+
+    // --- Landing ---
+    function renderLanding(){
+      try{
+        updateHeaderTotals();
+        if(!categoryGridEl) return;
+        categoryGridEl.innerHTML='';
+        var frag=document.createDocumentFragment();
+        // Kategorien zuerst
+        for(var i=0;i<CATEGORIES.length;i++){
+          frag.appendChild(createCategoryCard(CATEGORIES[i]));
+        }
+        // Stats unten anhängen
+        frag.appendChild(createStatsCard());
+        categoryGridEl.appendChild(frag);
+      }catch(e){ showError('Startseite: '+e.message); }
+    }
+
+    // --- List ---
+    function openListView(styleCode){currentListStyle=styleCode; renderList(); viewLandingEl.classList.remove('active'); viewSettingsEl.classList.remove('active'); viewDetailEl.classList.remove('active'); viewListEl.classList.add('active'); if(openAddWineBtn) openAddWineBtn.style.display='none'}
+
+    function renderList(){
+      var cat=null; for(var i=0;i<CATEGORIES.length;i++){if(CATEGORIES[i].code===currentListStyle){cat=CATEGORIES[i];break}}
+      listTitleEl.textContent=cat?cat.label:'Weine';
+      var items=wines.filter(function(w){return w.style===currentListStyle});
+      var q=listSearchQuery.trim().toLowerCase();
+      if(q){items=items.filter(function(w){return (w.name||'').toLowerCase().indexOf(q)>-1||(w.winery||'').toLowerCase().indexOf(q)>-1||(w.region||'').toLowerCase().indexOf(q)>-1})}
+      items.sort(function(a,b){switch(listSortMode){case'jahrgang_asc':return(Number(a.vintage)||0)-(Number(b.vintage)||0);case'name_asc':return(a.name||'').localeCompare(b.name||'');case'bestand_desc':return(Number(b.quantity)||0)-(Number(a.quantity)||0);case'preis_desc':return parsePrice(b.price)-parsePrice(a.price);default:return(Number(b.vintage)||0)-(Number(a.vintage)||0)}});
+      var qty=items.reduce(function(s,w){return s+(Number(w.quantity)||0)},0);
+      listSubtitleEl.textContent=qty+' '+(qty===1?'Flasche':'Flaschen');
+      wineListEl.innerHTML='';
+      for(var j=0;j<items.length;j++){
+        var w=items[j];
+        var row=makeEl('div','wineRow');
+        var main=makeEl('div','wineMain');
+        main.appendChild(makeEl('div','wineName', (w.name||'Unbenannt')));
+        var meta=makeEl('div','wineMeta', (w.vintage||'')+' '+(w.region||''));
+        var br=document.createElement('br');
+        var metaWrap=document.createElement('div');
+        metaWrap.appendChild(meta);
+        var winery=makeEl('span',null,(w.winery||''));
+        metaWrap.appendChild(br);
+        metaWrap.appendChild(winery);
+        main.appendChild(metaWrap);
+        row.appendChild(main);
+        var right=makeEl('div','wineRight');
+        right.appendChild(makeEl('div','qtyBubble',(w.quantity||0)+'x'));
+        right.appendChild(makeEl('div','priceTag', w.price? formatCurrency(parsePrice(w.price)) : ''));
+        right.appendChild(makeEl('div','rating', w.rating? new Array(Math.round(w.rating)+1).join('★') : '—'));
+        row.appendChild(right);
+        (function(id){row.addEventListener('click',function(){openDetail(id)})})(w.id);
+        wineListEl.appendChild(row);
+      }
+    }
+
+    // --- Detail ---
+    function openDetail(id){
+      var w=null; for(var i=0;i<wines.length;i++){if(wines[i].id==id){w=wines[i];break}}
+      if(!w) return;
+      currentDetailId=w.id;
+      document.getElementById('detailTitle').textContent=w.name||'Wein';
+      var dp=document.getElementById('detailPhoto'); dp.src=w.photoDataUrl||''; dp.style.display=w.photoDataUrl?'block':'none';
+      document.getElementById('detailName').textContent=w.name||'';
+      document.getElementById('detailWinery').textContent=w.winery||'';
+      document.getElementById('detailRegion').textContent=w.region||'';
+      document.getElementById('detailVintage').textContent=w.vintage||'';
+      var styleLabel=w.style||''; for(var k=0;k<CATEGORIES.length;k++){if(CATEGORIES[k].code===w.style){styleLabel=CATEGORIES[k].label;break}}
+      document.getElementById('detailStyle').textContent=styleLabel;
+      document.getElementById('detailAlcohol').textContent=w.alcohol?(w.alcohol+'% vol'):'';
+      document.getElementById('detailPrice').textContent=w.price?formatCurrency(parsePrice(w.price)):'';
+      document.getElementById('detailQty').textContent=(w.quantity||0)+' Flaschen';
+      viewListEl.classList.remove('active'); viewLandingEl.classList.remove('active'); viewSettingsEl.classList.remove('active'); viewDetailEl.classList.add('active'); if(openAddWineBtn) openAddWineBtn.style.display='none';
+    }
+    function drinkOne(){if(!currentDetailId)return; var i=-1; for(var x=0;x<wines.length;x++){if(wines[x].id===currentDetailId){i=x;break}} if(i===-1)return; wines[i].quantity=Math.max(0,(Number(wines[i].quantity)||0)-1); saveWines(); openDetail(currentDetailId)}
+    function deleteCurrentWine(){if(!currentDetailId)return; if(!confirm('Diesen Wein wirklich löschen?'))return; wines=wines.filter(function(w){return w.id!==currentDetailId}); saveWines(); goHome()}
+    function editCurrentWine(){if(!currentDetailId)return; openEdit(currentDetailId)}
+
+    // --- Form ---
+    function buildStyleChips(){try{styleSelectorEl.innerHTML=''; for(var i=0;i<CATEGORIES.length;i++){(function(cat){var chip=document.createElement('button'); chip.type='button'; chip.className='styleChip'; chip.textContent=cat.label; chip.addEventListener('click',function(){selectedStyleCode=cat.code; refreshStyleChipActive()}); styleSelectorEl.appendChild(chip)})(CATEGORIES[i])}}catch(e){showError('Stil-Chips: '+e.message)}}
+    function refreshStyleChipActive(){var chips=styleSelectorEl.querySelectorAll('.styleChip'); for(var i=0;i<chips.length;i++){var cat=CATEGORIES[i]; if(!cat) continue; if(cat.code===selectedStyleCode){chips[i].classList.add('active')} else {chips[i].classList.remove('active')}}}
+    function openForm(prefillStyle){ if(!wineFormModal) return; document.getElementById('formTitle').textContent='Neuer Wein'; selectedStyleCode=prefillStyle||currentListStyle||null; refreshStyleChipActive(); currentEditingId=null; wineNameEl.value=''; wineWineryEl.value=''; wineRegionEl.value=''; wineVintageEl.value=''; wineAlcoholEl.value=''; wineQuantityEl.value=''; winePriceEl.value=''; wineNotesEl.value=''; currentPhotoDataUrl=''; photoPreviewEl.style.display='none'; photoPreviewEl.src=''; ocrStatusEl.textContent='Noch kein Foto erfasst.'; wineFormModal.showModal()}
+    function closeForm(){ if(wineFormModal) wineFormModal.close() }
+    if(winePhotoInputEl){winePhotoInputEl.addEventListener('change',function(e){var files=e.target.files; var f=files&&files[0]; if(!f)return; var r=new FileReader(); r.onload=function(ev){currentPhotoDataUrl=ev.target.result; photoPreviewEl.src=currentPhotoDataUrl; photoPreviewEl.style.display='block'}; r.readAsDataURL(f); var mock=f.name.replace(/[_-]/g,' '); autoFillFromOCRText(mock)})}
+    function autoFillFromOCRText(text){var y=text.match(/(19|20)\d{2}/); if(y&&!wineVintageEl.value) wineVintageEl.value=y[0]; var a=text.match(/(\d{1,2}[\.,]\d{1,2})\s?%?\s?(vol|VOL|Vol)?/); if(a&&!wineAlcoholEl.value) wineAlcoholEl.value=a[1].replace(',','.'); var lower=text.toLowerCase(); if(!selectedStyleCode){ if(lower.indexOf('rose')>-1||lower.indexOf('rosé')>-1) selectedStyleCode='rose'; else if(lower.indexOf('orange')>-1) selectedStyleCode='orange'; else if(lower.indexOf('brut')>-1||lower.indexOf('sparkling')>-1||lower.indexOf('champagne')>-1) selectedStyleCode='schaum'; else if(lower.indexOf('weiss')>-1||lower.indexOf('weiß')>-1||lower.indexOf('riesling')>-1||lower.indexOf('chardonnay')>-1) selectedStyleCode='weiss'; else selectedStyleCode='rot'; } refreshStyleChipActive(); ocrStatusEl.textContent='Etikett gelesen (vorläufig). Bitte prüfen.'}
+
+    function openEdit(id){var w=null; for(var i=0;i<wines.length;i++){if(wines[i].id==id){w=wines[i];break}} if(!w) return; currentEditingId=w.id; document.getElementById('formTitle').textContent='Wein bearbeiten'; selectedStyleCode=w.style||null; refreshStyleChipActive(); wineNameEl.value=w.name||''; wineWineryEl.value=w.winery||''; wineRegionEl.value=w.region||''; wineVintageEl.value=w.vintage||''; wineAlcoholEl.value=w.alcohol||''; wineQuantityEl.value=w.quantity||''; winePriceEl.value=w.price||''; wineNotesEl.value=w.notes||''; currentPhotoDataUrl=w.photoDataUrl||''; if(currentPhotoDataUrl){photoPreviewEl.src=currentPhotoDataUrl; photoPreviewEl.style.display='block'} else {photoPreviewEl.style.display='none'} if(wineFormModal) wineFormModal.showModal()}
+
+    function saveCurrentWine(){var name=wineNameEl.value.trim(); var winery=wineWineryEl.value.trim(); var region=wineRegionEl.value.trim(); var vintage=wineVintageEl.value.trim(); var alcohol=wineAlcoholEl.value.trim(); var quantity=wineQuantityEl.value.trim(); var price=winePriceEl.value.trim(); var notes=wineNotesEl.value.trim(); if(!name||!winery||!quantity||!selectedStyleCode){alert('Bitte mindestens Name, Weingut, Anzahl und Stil angeben.'); return;} if(currentEditingId){var i=-1; for(var x=0;x<wines.length;x++){if(wines[x].id==currentEditingId){i=x;break}} if(i!==-1){wines[i]={id:wines[i].id,name:name,winery:winery,region:region,vintage:vintage,style:selectedStyleCode,quantity:Number(quantity)||0,alcohol:alcohol,price:price,notes:notes,photoDataUrl:currentPhotoDataUrl,updatedAt:new Date().toISOString()}}} else {wines.push({id:Date.now().toString(),name:name,winery:winery,region:region,vintage:vintage,style:selectedStyleCode,quantity:Number(quantity)||0,alcohol:alcohol,price:price,notes:notes,photoDataUrl:currentPhotoDataUrl,createdAt:new Date().toISOString()})} saveWines(); currentEditingId=null; closeForm(); if(currentListStyle) renderList(); else renderLanding()}
+
+    // --- Einstellungen & Navigation ---
+    function openSettingsView(){viewLandingEl.classList.remove('active'); viewListEl.classList.remove('active'); viewDetailEl.classList.remove('active'); viewSettingsEl.classList.add('active'); if(openAddWineBtn) openAddWineBtn.style.display='none'}
+    function exportJSON(){var dataStr='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(wines,null,2)); var a=document.createElement('a'); a.href=dataStr; a.download='wein-keller-backup.json'; document.body.appendChild(a); a.click(); a.remove()}
+    function importJSON(file){var r=new FileReader(); r.onload=function(e){try{var arr=JSON.parse(e.target.result); if(!Array.isArray(arr)) throw new Error('Kein Array'); if(!confirm('Bestehende Daten mit Import ersetzen?')) return; wines=arr; saveWines(); goHome()}catch(err){alert('Import fehlgeschlagen: '+err.message)}}; r.readAsText(file)}
+
+    // --- Helpers ---
+    function escapeHtml(str){if(!str&&str!==0)return''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#039;')}
+    function goHome(){viewDetailEl.classList.remove('active'); viewListEl.classList.remove('active'); viewSettingsEl.classList.remove('active'); viewLandingEl.classList.add('active'); currentListStyle=null; if(openAddWineBtn) openAddWineBtn.style.display='inline-flex'; renderLanding()}
+
+    // --- Events ---
+    if(homeTitleEl) homeTitleEl.addEventListener('click',goHome);
+    if(tabHomeBtnEl) tabHomeBtnEl.addEventListener('click',goHome);
+    if(tabSettingsBtnEl) tabSettingsBtnEl.addEventListener('click',openSettingsView);
+
+    if(openAddWineBtn) openAddWineBtn.addEventListener('click',function(){openForm()});
+    if(closeFormBtn) closeFormBtn.addEventListener('click',closeForm);
+    if(saveWineBtn) saveWineBtn.addEventListener('click',saveCurrentWine);
+
+    if(backBtnEl) backBtnEl.addEventListener('click',goHome);
+    var dbb=document.getElementById('detailBackBtn'); if(dbb) dbb.addEventListener('click',goHome);
+    var d1=document.getElementById('drinkOneBtn'); if(d1) d1.addEventListener('click',drinkOne);
+    var d2=document.getElementById('deleteBtn'); if(d2) d2.addEventListener('click',deleteCurrentWine);
+    var d3=document.getElementById('editBtn'); if(d3) d3.addEventListener('click',editCurrentWine);
+
+    if(exportBtnEl) exportBtnEl.addEventListener('click',exportJSON);
+    if(importInputEl) importInputEl.addEventListener('change',function(e){var files=e.target.files; var f=files&&files[0]; if(f) importJSON(f)});
+
+    if(searchInputEl) searchInputEl.addEventListener('input',function(e){listSearchQuery=e.target.value; if(currentListStyle) renderList()});
+    if(sortSelectEl) sortSelectEl.addEventListener('change',function(e){listSortMode=e.target.value; if(currentListStyle) renderList()});
+
+    // --- Init ---
+    function init(){ try{ loadWines(); buildStyleChips(); renderLanding(); } catch(e){ showError('Init: '+e.message); } }
+    init();
+  </script>
+</body>
+</html>
